@@ -8,7 +8,7 @@ from yaml import YAMLError
 import attr
 
 from .exceptions import NoConfigFoundError, InvalidConfigError
-from .util.yaml import load, resolve_templates
+from .util.yaml import load, resolve_templates, resolve_includes
 
 @attr.s(eq=False)
 class Config:
@@ -49,6 +49,8 @@ class Config:
             raise InvalidConfigError(
                 f"configuration file '{self.filename}' is invalid: {e}"
             )
+
+        self.data = resolve_includes(self.data)
 
     def resolve_path(self, path):
         """Resolve an absolute path
