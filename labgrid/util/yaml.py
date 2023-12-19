@@ -5,16 +5,20 @@ loader and dumper
 
 import warnings
 from collections import OrderedDict, UserString
+from functools import partial
 from string import Template
+from typing import Optional
 from ..exceptions import InvalidConfigError
+import json
 import os
 import yaml
 import six
 
 
 class Loader(yaml.SafeLoader):
-    def __init__(self, stream):
+    def __init__(self, stream, substitutions: dict[str, str]):
         """Initialise Loader."""
+        self.substitutions = substitutions
         try:
             self._root = os.path.split(stream.name)[0]
         except AttributeError:
@@ -27,12 +31,17 @@ class Dumper(yaml.SafeDumper):
 def _construct_include(loader: Loader, node: yaml.Node):
     """Include file referenced at node."""
 
-    filename = os.path.abspath(os.path.join(loader._root, loader.construct_scalar(node)))
+    val = Template(loader.construct_scalar(node))
+    filename: Optional[str] = None
+    try:
+        filename = os.path.abspath(os.path.join(loader._root, val.substitute(loader.substitutions)))
+    except KeyError as e:
+        raise InvalidConfigError(f'Could not resolve key {e}')
     extension = os.path.splitext(filename)[1].lstrip('.')
 
     with open(filename, 'r') as f:
         if extension in ('yaml', 'yml'):
-            return yaml.load(f, Loader)
+            return yaml.load(f, Loader=partial(Loader, substitutions=loader.substitutions))
         elif extension in ('json', ):
             return json.load(f)
         else:
@@ -94,11 +103,15 @@ Loader.add_constructor(
 )
 
 
-def load(stream):
+def load(stream, substitutions: dict[str, str]):
     """
     Wrapper for yaml load function with custom loader.
     """
-    return yaml.load(stream, Loader=Loader)
+    # as the yaml.load() function treats the Loader argument as callable
+    # (typically a constructor) with a single argument, we have to allow
+    # for partial function application by providing the substitutions as
+    # a fixed argument.
+    return yaml.load(stream, Loader=partial(Loader, substitutions=substitutions))
 
 
 def dump(data, stream=None, **kwargs):
@@ -141,6 +154,9 @@ def resolve_includes(data):
         items = enumerate(data)
     elif isinstance(data, dict):
         items = data.items()
+    else:
+        raise TypeError(f"Expected list or dict, got {type(data)}")
+
     for k, val in items:
         if k == 'includes':
             data.pop(k)

@@ -48,6 +48,9 @@ New Features in 24.0
 - The pyproject.toml gained a config for `ruff <https://github.com/astral-sh/ruff>`_.
 - ``setuptools_scm`` is now used to generate a version file.
 - labgrid-client console will fallback to telnet if microcom is not available.
+- The ``!include`` directive allows for including other YAML files in the config
+  file. It is also possible to use the ``!template`` directive in included
+  files.
 
 
 Bug fixes in 24.0

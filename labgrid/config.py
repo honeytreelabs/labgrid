@@ -10,16 +10,28 @@ import attr
 from .exceptions import NoConfigFoundError, InvalidConfigError
 from .util.yaml import load, resolve_templates, resolve_includes
 
+def calc_substitutions(base: str) -> dict[str, str]:
+    substitutions = {
+        'BASE': base,
+    }
+    # map LG_* variables from OS environment into YAML config file using !template $LG_*
+    # Only map LG_*, to protect from weird things in environment
+    for x in os.environ.keys():
+        if x.startswith("LG_"):
+            substitutions[x] = os.environ[x]
+    return substitutions
+
 @attr.s(eq=False)
 class Config:
-    filename = attr.ib(validator=attr.validators.instance_of(str))
+    filename: str = attr.ib(validator=attr.validators.instance_of(str))
 
     def __attrs_post_init__(self):
         # load and parse the yaml configuration file
         self.base = os.path.dirname(os.path.abspath(self.filename))
+        substitutions = calc_substitutions(self.base)
         try:
             with open(self.filename) as file:
-                self.data = load(file)
+                self.data = load(file, substitutions)
         except FileNotFoundError:
             raise NoConfigFoundError(
                 f"configuration file '{self.filename}' could not be found"
@@ -29,15 +41,6 @@ class Config:
 
         if self.data is None:
             raise InvalidConfigError("Configuration file is empty")
-
-        substitutions = {
-            'BASE': self.base,
-        }
-        # map LG_* variables from OS environment into YAML config file using !template $LG_*
-        # Only map LG_*, to protect from weird things in environment
-        for x in os.environ.keys():
-            if x.startswith("LG_"):
-                substitutions[x] = os.environ[x]
 
         try:
             resolve_templates(self.data, substitutions)
