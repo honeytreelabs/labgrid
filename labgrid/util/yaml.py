@@ -10,6 +10,7 @@ from string import Template
 from typing import Optional
 from ..exceptions import InvalidConfigError
 import json
+import logging
 import os
 import yaml
 import six
@@ -103,7 +104,31 @@ Loader.add_constructor(
 )
 
 
-def load(stream, substitutions: dict[str, str]):
+class OptionalTemplate:
+    def __init__(self, tmpl):
+        self.tmpl = Template(tmpl)
+
+    def substitute(self, mappings):
+        ext_mappings = mappings.copy()
+        while True:
+            try:
+                return self.tmpl.substitute(ext_mappings)
+            except KeyError as exc:
+                variable_name = exc.args[0]
+                logging.info(f'Replacing undefined environment variable {variable_name}')
+                ext_mappings[variable_name] = ''
+
+
+def _optional_template_constructor(loader, node):
+    return OptionalTemplate(loader.construct_scalar(node))
+
+
+Loader.add_constructor(
+    '!optional_template', _optional_template_constructor
+)
+
+
+def load(stream, substitutions: dict[str, str]={}):
     """
     Wrapper for yaml load function with custom loader.
     """
@@ -178,7 +203,10 @@ def resolve_templates(data, mapping):
         raise TypeError(f"Expected list or dict, got {type(data)}")
 
     for k, val in items:
-        if isinstance(val, Template):
+        if isinstance(val, OptionalTemplate):
+            data[k] = val.substitute(mapping)
+
+        elif isinstance(val, Template):
             try:
                 data[k] = val.substitute(mapping)
             except ValueError as error:

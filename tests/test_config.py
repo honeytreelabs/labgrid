@@ -131,6 +131,27 @@ def test_tool_no_explicit_tool(tmpdir):
 
     assert c.get_tool("testtool") == "testtool"
 
+def test_optional_template(tmpdir):
+    p = tmpdir.join("config.yaml")
+    p.write(
+        """
+        dict:
+          list:
+          - a
+          - b
+          - !optional_template $FOO
+          - !optional_template ${FOO} bar ${BAZ}
+          string: !optional_template ${FOO}/suffix
+          mixed: !optional_template /${BASE} ${FOO} bar
+        """
+    )
+    c = Config(str(p))
+    assert 'a' in c.data['dict']['list']
+    assert c.data['dict']['list'][2] == ''
+    assert c.data['dict']['list'][3] == ' bar '
+    assert c.data['dict']['string'] == '/suffix'
+    assert c.data['dict']['mixed'] == f'/{tmpdir}  bar'
+
 def test_include(tmp_path: Path) -> None:
     config_yaml = tmp_path / "configs" / "config.yaml"
     config_yaml.parent.mkdir(parents=True, exist_ok=True)
@@ -306,6 +327,31 @@ first:
 
     c = Config(str(config_yaml.resolve()))
     assert 'bar' in c.data['first']
+
+def test_include_optional_template(tmp_path: Path, include_env: None) -> None:
+    del include_env  # unused
+
+    config_yaml = tmp_path / "configs" / "config.yaml"
+    config_yaml.parent.mkdir(parents=True, exist_ok=True)
+    config_yaml.write_text("""---
+target:
+  main:
+    drivers: {}
+includes:
+  - !include first.yaml
+""")
+    first_yaml = tmp_path / "configs" / "first.yaml"
+    first_yaml.write_text("""
+first:
+  - foo
+  - !optional_template ${FOO} bar ${BAZ}
+  - !optional_template ${BASE} ${FOO} bar ${BAZ}
+  - baz
+""")
+
+    c = Config(str(config_yaml.resolve()))
+    assert c.data['first'][1] == ' bar '
+    assert c.data['first'][2] == f'{tmp_path}/configs  bar '
 
 def test_include_template_bad_placeholder(tmp_path: Path, include_env: None) -> None:
     del include_env  # unused
