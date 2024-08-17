@@ -54,7 +54,7 @@ from ..util.ssh import sshmanager
 from ..util.helper import processwrapper
 from ..util.loop import ensure_event_loop
 from ..driver import Mode, ExecutionError
-from ..logging import basicConfig, StepLogger
+from ..logging import basicConfig, CONSOLE, StepLogger
 
 # This is a workround for the gRPC issue
 # https://github.com/grpc/grpc/issues/38679.
@@ -2510,7 +2510,7 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.INFO)
     if args.verbose > 1:
-        logging.getLogger().setLevel(logging.CONSOLE)
+        logging.getLogger().setLevel(CONSOLE)
     if args.debug or args.verbose > 2:
         logging.getLogger().setLevel(logging.DEBUG)
 

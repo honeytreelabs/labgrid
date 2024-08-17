@@ -1,11 +1,9 @@
-import logging
-
 import pytest
 
 from labgrid import Target
 from labgrid.consoleloggingreporter import ConsoleLoggingReporter
 from labgrid.driver.fake import FakeConsoleDriver
-from labgrid.logging import SerialLoggingReporter
+from labgrid.logging import CONSOLE, SerialLoggingReporter
 from labgrid.step import steps
 
 
@@ -19,7 +17,7 @@ def test_non_utf8_console_data(operation, payload, tmp_path, caplog, recwarn):
     reporter = SerialLoggingReporter()
     ConsoleLoggingReporter.start(str(tmp_path))
     try:
-        with caplog.at_level(logging.CONSOLE):
+        with caplog.at_level(CONSOLE):
             if operation == 'write':
                 console.write(payload)
             else:
