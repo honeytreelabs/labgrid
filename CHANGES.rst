@@ -3,7 +3,7 @@ Release 26.1 (Unreleased)
 
 New Features in 26.1
 ~~~~~~~~~~~~~~~~~~~~
-FIXME
+- The ``pytest``-specific parts of the labgrid framework now have typing hints.
 
 Bug fixes in 26.1
 ~~~~~~~~~~~~~~~~~
