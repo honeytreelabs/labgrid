@@ -15,6 +15,8 @@ from labgrid.driver.fake import FakeConsoleDriver
 
 psutil = pytest.importorskip("psutil")
 
+pytest_plugins = ["pytester"]
+
 # gRPC is only safe to fork() if gRPC objects are created in the child after the fork. The tests do
 # the opposite: the pytest process spawns labgrid-client via pexpect (forkpty) while gRPC is
 # already initialized in it, so gRPC's pthread_atfork handler can lose a race and abort the child
