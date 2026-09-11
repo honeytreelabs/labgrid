@@ -137,6 +137,7 @@ class ProcessWrapper:
                 break
 
             if timeout is not None and timeout.expired:
+                process.kill()
                 break
 
         if stdin_w is not None:
